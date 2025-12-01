@@ -27,15 +27,15 @@ st.markdown("""
     }
     
     /* Custom Link Style for Routes */
+    /* This removes the underline and sets the color */
     .route-link {
         color: #229971 !important;
         font-weight: bold;
-        text-decoration: none;
-        border-bottom: 1px solid #229971;
+        text-decoration: none !important; /* Removes underline */
     }
     .route-link:hover {
         color: #2DFFBC !important;
-        border-bottom: 1px solid #2DFFBC;
+        text-decoration: none !important; /* Ensures underline stays gone on hover */
     }
     </style>
     """, unsafe_allow_html=True)
@@ -148,22 +148,19 @@ if st.session_state.search_performed:
                     route_name = str(row['Route'])
                     
                     # 1. Extract the number from string (e.g. "1 - Banbury" -> "1")
-                    # This regex finds the first digit in the string
                     match = re.search(r'\d+', route_name)
                     
+                    route_display = f"**Route:** {route_name}" # Default fallback
+
                     if match:
                         route_num = match.group()
                         # 2. Check if we have a URL for this number
                         if route_num in ROUTE_URLS:
                             link = ROUTE_URLS[route_num]
-                            # Render clickable link
-                            st.markdown(f"**Route:** <a href='{link}' target='_blank' class='route-link'>{route_name} 🔗</a>", unsafe_allow_html=True)
-                        else:
-                            # Fallback if route number exists but no URL configured
-                            st.write(f"**Route:** {route_name}")
-                    else:
-                        # Fallback if no number found (e.g. "VIP Shuttle")
-                        st.write(f"**Route:** {route_name}")
+                            # Render clean clickable link (No Emoji, No Underline via CSS class)
+                            route_display = f"**Route:** <a href='{link}' target='_blank' class='route-link'>{route_name}</a>"
+                    
+                    st.markdown(route_display, unsafe_allow_html=True)
 
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
