@@ -67,7 +67,8 @@ try:
 except:
     pass
 
-st.title("AMF1 Team Transport")
+# UPDATE 1: Changed Title
+st.title("Aston Martin F1 End of Season Party Transport")
 
 if df is None:
     st.error("⚠️ System Error: 'bookings.csv' not found.")
@@ -95,7 +96,8 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
-            with st.expander(f"🎫 TICKET: {row['Name']}", expanded=True):
+            # UPDATE 2: Changed label to Passenger
+            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
                 
                 # --- TRAVEL BADGE ---
                 direction = str(row['Direction']).title()
