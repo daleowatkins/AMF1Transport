@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import st_folium
+import re
 
 # 1. Page Config
 st.set_page_config(page_title="AMF1 Transport", page_icon="🏎️", layout="centered")
@@ -24,6 +25,18 @@ st.markdown("""
     h1, h2, h3 {
         color: white !important;
     }
+    
+    /* Custom Link Style for Routes */
+    .route-link {
+        color: #229971 !important;
+        font-weight: bold;
+        text-decoration: none;
+        border-bottom: 1px solid #229971;
+    }
+    .route-link:hover {
+        color: #2DFFBC !important;
+        border-bottom: 1px solid #2DFFBC;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -32,6 +45,18 @@ if 'search_performed' not in st.session_state:
     st.session_state.search_performed = False
 if 'booking_code' not in st.session_state:
     st.session_state.booking_code = ""
+
+# --- ROUTE MAPPING CONFIGURATION ---
+# This maps the Route Name (from CSV) to your specific GitHub URL
+ROUTE_URLS = {
+    "1": "https://daleowatkins.github.io/AMF1Transport/route1.html",
+    "2": "https://daleowatkins.github.io/AMF1Transport/route2.html",
+    "3": "https://daleowatkins.github.io/AMF1Transport/route3.html",
+    "4": "https://daleowatkins.github.io/AMF1Transport/route4.html",
+    "5": "https://daleowatkins.github.io/AMF1Transport/route5.html",
+    "6": "https://daleowatkins.github.io/AMF1Transport/route6.html",
+    "7": "https://daleowatkins.github.io/AMF1Transport/route7.html"
+}
 
 # 2. Load Data
 @st.cache_data
@@ -67,7 +92,6 @@ try:
 except:
     pass
 
-# UPDATE 1: Changed Title
 st.title("Aston Martin F1 End of Season Party Transport")
 
 if df is None:
@@ -96,7 +120,6 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
-            # UPDATE 2: Changed label to Passenger
             with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
                 
                 # --- TRAVEL BADGE ---
@@ -121,7 +144,27 @@ if st.session_state.search_performed:
                 # --- DETAILS ---
                 c1, c2 = st.columns([1.5, 2])
                 with c1:
-                    st.write(f"**Route:** {row['Route']}")
+                    # --- NEW ROUTE LINK LOGIC ---
+                    route_name = str(row['Route'])
+                    
+                    # 1. Extract the number from string (e.g. "1 - Banbury" -> "1")
+                    # This regex finds the first digit in the string
+                    match = re.search(r'\d+', route_name)
+                    
+                    if match:
+                        route_num = match.group()
+                        # 2. Check if we have a URL for this number
+                        if route_num in ROUTE_URLS:
+                            link = ROUTE_URLS[route_num]
+                            # Render clickable link
+                            st.markdown(f"**Route:** <a href='{link}' target='_blank' class='route-link'>{route_name} 🔗</a>", unsafe_allow_html=True)
+                        else:
+                            # Fallback if route number exists but no URL configured
+                            st.write(f"**Route:** {route_name}")
+                    else:
+                        # Fallback if no number found (e.g. "VIP Shuttle")
+                        st.write(f"**Route:** {route_name}")
+
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
                     if show_time:
@@ -129,7 +172,7 @@ if st.session_state.search_performed:
                         if pd.isna(p_time): p_time = "TBC"
                         st.write(f"**⏱️ Time:** {p_time}")
                         
-                        # --- NEW DEPARTURE WARNING ---
+                        # Departure Warning
                         st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
 
                     if show_return_msg:
@@ -146,7 +189,6 @@ if st.session_state.search_performed:
                         folium.Marker(
                             [lat, lon], 
                             popup=row['Pickup'], 
-                            # We use 'darkgreen' or 'blue' for the pin color to match the theme
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
                         
