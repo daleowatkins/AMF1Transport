@@ -19,28 +19,25 @@ st.markdown("""
     .stAppDeployButton {display:none;}
     [data-testid="stSidebar"] {display: none;} /* Hides the sidebar completely */
 
-    /* 2. Professional Full-Width Banner */
-    /* Remove default padding from the main block so banner hits the top */
-    .block-container {
-        padding-top: 0rem;
-        padding-left: 0rem;
-        padding-right: 0rem;
-        max-width: 100%;
-    }
-    
-    /* Style for the banner image container */
+    /* 2. Professional Full-Width Banner Hack */
+    /* Instead of removing padding from everything, we use negative margins on the banner container */
     .banner-container {
-        width: 100%;
-        height: 250px; /* Fixed height for a clean header look */
+        width: 100vw;
+        position: relative;
+        left: 50%;
+        right: 50%;
+        margin-left: -50vw;
+        margin-right: -50vw;
+        margin-top: -6rem; /* Pulls it up to cover the top padding area */
+        height: 250px; 
         overflow: hidden;
         margin-bottom: 20px;
-        position: relative;
     }
     
     .banner-container img {
         width: 100%;
         height: 100%;
-        object-fit: cover; /* This crops the image nicely instead of stretching it */
+        object-fit: cover;
         object-position: center;
     }
     
@@ -64,13 +61,6 @@ st.markdown("""
     .route-link:hover {
         color: #2DFFBC !important;
         text-decoration: none !important;
-    }
-    
-    /* Restore padding for the main content below the banner */
-    .main-content {
-        padding: 0rem 1rem; /* Add side padding back */
-        max-width: 700px;   /* Max width to prevent edge-to-edge stretching */
-        margin: 0 auto;     /* Center the container */
     }
     
     /* Fix for Expander Borders to look nice on dark theme */
@@ -141,15 +131,12 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-# --- MAIN CONTENT WRAPPER ---
-# This 'div' wraps everything else to keep it centered and tidy
-st.markdown('<div class="main-content">', unsafe_allow_html=True)
-
 # Logo Centered
 c1, c2, c3 = st.columns([1,1,1])
 with c2:
     try:
-        st.image("logo.png", use_container_width=True)
+        # Updated to avoid the warning: removed use_container_width
+        st.image("logo.png") 
     except:
         pass
 
@@ -265,6 +252,3 @@ if st.session_state.search_performed:
         if st.button("Reset Search"):
             st.session_state.search_performed = False
             st.rerun()
-
-# Close Main Content Wrapper
-st.markdown('</div>', unsafe_allow_html=True)
