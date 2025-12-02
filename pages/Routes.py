@@ -46,23 +46,20 @@ st.markdown("""
         object-position: center;
     }
     
-    /* Typography */
-    h1 {
+    /* Typography - CENTER ALIGNMENT */
+    h1, h2, h3, p, div {
         text-align: center !important;
         color: white !important;
-        margin-top: 1rem;
     }
     
-    h2, h3, p, div, span {
-        color: white !important;
-    }
+    h1 { margin-top: 1rem; }
     
     /* Main Content Wrapper */
     .main-content {
         padding: 0rem 1rem;
         max-width: 800px;
         margin: 0 auto;
-        text-align: left; /* Ensure left justification */
+        text-align: center; /* Force center alignment for all content */
     }
 
     /* Table Links */
@@ -77,6 +74,10 @@ st.markdown("""
         color: white !important;
         width: 100%;
     }
+    
+    /* Center the Map and Table */
+    iframe { margin: 0 auto; display: block; }
+    [data-testid="stDataFrame"] { margin: 0 auto; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -144,7 +145,8 @@ if "view_route_num" not in st.session_state:
 route_num = st.session_state.view_route_num
 filename = f"route{route_num}.csv"
 
-st.title(f"🚌 Route {route_num} Details")
+# Removed Emoji from Title
+st.title(f"Route {route_num} Details")
 
 try:
     # Read CSV
@@ -154,7 +156,7 @@ try:
         df = pd.read_csv(f"../{filename}")
     
     # --- 1. MAP (Full Route with OSRM) ---
-    st.subheader("🗺️ Route Map")
+    st.subheader("Route Map") # Removed Emoji
     
     if 'Lat' in df.columns and 'Lon' in df.columns:
         avg_lat = df['Lat'].mean()
@@ -171,7 +173,8 @@ try:
                 coords,
                 popup=f"{row['Stop Name']}<br>{row['Time']}",
                 tooltip=row['Stop Name'],
-                icon=folium.Icon(color="green", icon="bus", prefix="fa")
+                # Removed specific bus icon to be cleaner, just default pin or simple dot
+                icon=folium.Icon(color="green", icon="info-sign") 
             ).add_to(m)
         
         # Draw Route Line (OSRM)
@@ -205,7 +208,7 @@ try:
 
     # --- 2. TIMETABLE ---
     st.divider()
-    st.subheader(f"⏱️ Timetable")
+    st.subheader(f"Timetable") # Removed Emoji
     
     display_df = df[['Stop Name', 'Time']].copy()
     if 'W3W' in df.columns:
@@ -213,7 +216,8 @@ try:
             lambda x: f"<a href='https://w3w.co/{str(x).replace('///', '')}' target='_blank'>{x}</a>"
         )
     
-    st.write(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+    # Use HTML table to support centering and links
+    st.write(display_df.to_html(escape=False, index=False, classes="table-centered"), unsafe_allow_html=True)
 
 except FileNotFoundError:
     st.info(f"Route data for Route {route_num} is coming soon.")
