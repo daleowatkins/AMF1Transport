@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 import re
 
 # 1. Page Config
 st.set_page_config(page_title="AMF1 Transport", page_icon="🏎️", layout="centered")
 
-# --- CUSTOM CSS (For that "Premium" Aston Look) ---
+# --- CUSTOM CSS ---
 st.markdown("""
     <style>
     /* Hide Streamlit elements */
@@ -21,22 +21,25 @@ st.markdown("""
         border-radius: 5px;
     }
     
-    /* Force specific text colors if needed */
-    h1, h2, h3 {
+    /* Center Title */
+    h1 {
+        text-align: center !important;
         color: white !important;
-        text-align: center !important; /* Center align headings */
+    }
+    
+    h2, h3 {
+        color: white !important;
     }
     
     /* Custom Link Style for Routes */
-    /* This removes the underline and sets the color */
     .route-link {
         color: #229971 !important;
         font-weight: bold;
-        text-decoration: none !important; /* Removes underline */
+        text-decoration: none !important;
     }
     .route-link:hover {
         color: #2DFFBC !important;
-        text-decoration: none !important; /* Ensures underline stays gone on hover */
+        text-decoration: none !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -49,6 +52,7 @@ if 'booking_code' not in st.session_state:
 
 # --- ROUTE MAPPING CONFIGURATION ---
 # This maps the Route Name (from CSV) to your specific GitHub URL
+# Note: This dictionary is kept for reference, but the app now uses internal page switching
 ROUTE_URLS = {
     "1": "https://daleowatkins.github.io/AMF1Transport/route1.html",
     "2": "https://daleowatkins.github.io/AMF1Transport/route2.html",
@@ -81,13 +85,11 @@ def load_data():
 df = load_data()
 
 # --- 3. BRANDING HEADER ---
-# This displays your banner image at the very top
 try:
     st.image("banner.jpg", use_container_width=True) 
 except:
     pass
 
-# Sidebar Logo
 try:
     st.logo("logo.png")
 except:
@@ -109,7 +111,6 @@ with st.container(border=True):
 
     with st.form(key='login_form'):
         st.text_input("Booking Code", key="widget_input")
-        # The primary button will now use the "Aston Green" from config.toml
         st.form_submit_button(label='Find My Booking', type="primary", on_click=update_search)
 
 # 5. Results Logic
@@ -145,24 +146,21 @@ if st.session_state.search_performed:
                 # --- DETAILS ---
                 c1, c2 = st.columns([1.5, 2])
                 with c1:
-                    # --- NEW ROUTE LINK LOGIC ---
+                    # Route Link Logic
                     route_name = str(row['Route'])
-                    
-                    # 1. Extract the number from string (e.g. "1 - Banbury" -> "1")
                     match = re.search(r'\d+', route_name)
                     
-                    route_display = f"**Route:** {route_name}" # Default fallback
-
-                    if match:
-                        route_num = match.group()
-                        # 2. Check if we have a URL for this number
-                        if route_num in ROUTE_URLS:
-                            link = ROUTE_URLS[route_num]
-                            # Render clean clickable link (No Emoji, No Underline via CSS class)
-                            route_display = f"**Route:** <a href='{link}' target='_blank' class='route-link'>{route_name}</a>"
+                    # Just display the name
+                    st.write(f"**Route:** {route_name}")
                     
-                    st.markdown(route_display, unsafe_allow_html=True)
-
+                    # Create a specific button for this route
+                    if match:
+                        r_num = match.group()
+                        # Unique key for every button (important!)
+                        if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
+                            st.session_state.view_route_num = r_num  # SAVE to memory
+                            st.switch_page("pages/Routes.py")        # SWITCH page
+                    
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
                     if show_time:
@@ -170,7 +168,6 @@ if st.session_state.search_performed:
                         if pd.isna(p_time): p_time = "TBC"
                         st.write(f"**⏱️ Time:** {p_time}")
                         
-                        # Departure Warning
                         st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
 
                     if show_return_msg:
@@ -180,17 +177,18 @@ if st.session_state.search_performed:
                         st.link_button("/// What 3 Words Link", row['MapLink'])
                         
                 with c2:
-                    # --- MAP ---
+                    # --- STATIC MAP (STOPS SPINNING) ---
                     lat, lon = row.get('Lat'), row.get('Lon')
                     if pd.notna(lat) and pd.notna(lon):
-                        m = folium.Map(location=[lat, lon], zoom_start=16)
+                        m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
                         folium.Marker(
                             [lat, lon], 
                             popup=row['Pickup'], 
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
                         
-                        st_folium(m, height=200, use_container_width=True, returned_objects=[], key=f"map_{index}")
+                        # Use folium_static instead of st_folium
+                        folium_static(m, height=200, width=350)
                     else:
                         st.info("🗺️ Map not available")
 
