@@ -159,7 +159,9 @@ if st.session_state.search_performed:
                             st.session_state.view_route_num = route_n
                             st.session_state.navigate_to_route = True
                             
-                        st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}", on_click=go_to_route, args=(r_num,))
+                        if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
+                            go_to_route(r_num)
+                            st.rerun() # Rerun immediately to trigger the top-level switch
                     
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
