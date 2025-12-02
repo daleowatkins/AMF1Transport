@@ -132,8 +132,6 @@ st.markdown(f"""
 # Logo Centered
 c1, c2, c3 = st.columns([1,1,1])
 with c2:
-    try:
-        st.image("logo.png", width=200)
     except:
         pass
 
