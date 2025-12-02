@@ -137,7 +137,7 @@ with c2:
     except:
         pass
 
-st.title("Aston Martin F1 End of Season Party Transport")
+st.title("")
 
 if df is None:
     st.error("⚠️ System Error: 'bookings.csv' not found.")
