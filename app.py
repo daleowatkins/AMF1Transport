@@ -10,28 +10,50 @@ st.set_page_config(page_title="AMF1 Transport", page_icon="🏎️", layout="cen
 # --- CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Hide Streamlit elements */
+    /* 1. Hide Streamlit Default Elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stAppDeployButton {display:none;}
-    
-    /* Rounded corners for the banner */
-    img {
-        border-radius: 5px;
+    [data-testid="stSidebar"] {display: none;} /* Hides the sidebar completely */
+
+    /* 2. Professional Full-Width Banner */
+    /* Remove top padding from the main block so banner hits the top */
+    .block-container {
+        padding-top: 0rem;
+        padding-left: 0rem;
+        padding-right: 0rem;
+        max-width: 100%;
     }
     
-    /* Center Title */
+    /* Style for the banner image container */
+    .banner-container {
+        width: 100%;
+        height: 250px; /* Fixed height for a clean header look */
+        overflow: hidden;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .banner-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; /* This crops the image nicely instead of stretching it */
+        object-position: center;
+    }
+    
+    /* Center Title & Text Colors */
     h1 {
         text-align: center !important;
         color: white !important;
+        margin-top: 1rem;
     }
     
-    h2, h3 {
+    h2, h3, p, div {
         color: white !important;
     }
     
-    /* Custom Link Style for Routes */
+    /* 3. Custom Link Style */
     .route-link {
         color: #229971 !important;
         font-weight: bold;
@@ -41,6 +63,13 @@ st.markdown("""
         color: #2DFFBC !important;
         text-decoration: none !important;
     }
+    
+    /* Restore padding for the main content below the banner */
+    .main-content {
+        padding: 0rem 2rem; /* Add side padding back for the form */
+        max-width: 800px;
+        margin: 0 auto;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -49,15 +78,13 @@ if 'search_performed' not in st.session_state:
     st.session_state.search_performed = False
 if 'booking_code' not in st.session_state:
     st.session_state.booking_code = ""
-# Initialize navigation state
 if 'navigate_to_route' not in st.session_state:
     st.session_state.navigate_to_route = False
 if 'view_route_num' not in st.session_state:
     st.session_state.view_route_num = None
 
-# --- NAVIGATION LOGIC (Must be at top level) ---
+# --- NAVIGATION LOGIC ---
 if st.session_state.navigate_to_route:
-    # Reset the trigger so we don't get stuck in a loop later
     st.session_state.navigate_to_route = False 
     st.switch_page("pages/Routes.py")
 
@@ -82,25 +109,56 @@ def load_data():
 
 df = load_data()
 
-# --- 3. BRANDING HEADER ---
-try:
-    st.image("banner.jpg", use_container_width=True) 
-except:
+# --- 3. HERO BANNER (New Implementation) ---
+# We use HTML/CSS to force the image to be a full-width header
+st.markdown(f"""
+    <div class="banner-container">
+        <img src="app/static/banner.jpg" onerror="this.src='https://media.formula1.com/image/upload/f_auto,c_limit,w_1440,q_auto/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/team%20logos/aston%20martin%202024.png';">
+    </div>
+    """, unsafe_allow_html=True)
+# Note: For the 'src' above to work locally/cloud, it's safest to rely on the 'st.image' fallback if local file serving is tricky,
+# BUT to get the full-width CSS effect, we need HTML.
+# A cleaner way for Streamlit Cloud is to read the image file as base64 so it embeds directly.
+
+import base64
+def get_base64_image(image_path):
+    try:
+        with open(image_path, "rb") as img_file:
+            return base64.b64encode(img_file.read()).decode()
+    except:
+        return ""
+
+banner_b64 = get_base64_image("banner.jpg")
+if banner_b64:
+    # Overwrite the previous markdown with the actual image data
+    st.markdown(f"""
+        <div class="banner-container">
+            <img src="data:image/jpg;base64,{banner_b64}">
+        </div>
+        """, unsafe_allow_html=True)
+else:
+    # Fallback if file missing
     pass
 
-try:
-    st.logo("logo.png")
-except:
-    pass
+# --- MAIN CONTENT AREA (Wrapped in a container to restore padding) ---
+with st.container():
+    st.markdown('<div class="main-content">', unsafe_allow_html=True)
+    
+    # Logo Centered
+    c1, c2, c3 = st.columns([1,1,1])
+    with c2:
+        try:
+            st.image("logo.png", use_container_width=True)
+        except:
+            pass
 
-st.title("Aston Martin F1 End of Season Party Transport")
+    st.title("Aston Martin F1 End of Season Party Transport")
 
-if df is None:
-    st.error("⚠️ System Error: 'bookings.csv' not found.")
-    st.stop()
+    if df is None:
+        st.error("⚠️ System Error: 'bookings.csv' not found.")
+        st.stop()
 
-# 4. Login Form
-with st.container(border=True):
+    # 4. Login Form
     st.write("Please enter your booking reference.")
     
     def update_search():
@@ -111,104 +169,100 @@ with st.container(border=True):
         st.text_input("Booking Code", key="widget_input")
         st.form_submit_button(label='Find My Booking', type="primary", on_click=update_search)
 
-# 5. Results Logic
-if st.session_state.search_performed:
-    user_code = st.session_state.booking_code
-    bookings = df[df['Code'] == user_code]
+    # 5. Results Logic
+    if st.session_state.search_performed:
+        user_code = st.session_state.booking_code
+        bookings = df[df['Code'] == user_code]
 
-    if not bookings.empty:
-        st.success(f"✅ Found {len(bookings)} passengers")
-        
-        for index, row in bookings.iterrows():
-            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
-                
-                # --- TRAVEL BADGE ---
-                direction = str(row['Direction']).title()
-                label_text = "Pickup:"
-                show_time, show_return_msg = False, False
-                badge_color, icon, pin_color = "blue", "🚌", "blue"
-
-                if "Both" in direction:
-                    label_text, show_time, show_return_msg = "Pickup & Dropoff:", True, True
-                    badge_color, icon, pin_color = "green", "🔄", "green"
-                elif "To" in direction:
-                    label_text, show_time, show_return_msg = "Pickup:", True, False
-                    badge_color, icon, pin_color = "orange", "➡️", "green"
-                else:
-                    label_text, show_time, show_return_msg = "Dropoff:", False, True
-                    badge_color, icon, pin_color = "blue", "⬅️", "blue"
-
-                st.markdown(f":{badge_color}[**{icon} Travel Direction: {direction}**]")
-                st.divider()
-
-                # --- DETAILS ---
-                c1, c2 = st.columns([1.5, 2])
-                with c1:
-                    # Route Link Logic
-                    route_name = str(row['Route'])
-                    match = re.search(r'\d+', route_name)
+        if not bookings.empty:
+            st.success(f"✅ Found {len(bookings)} passengers")
+            
+            for index, row in bookings.iterrows():
+                with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
                     
-                    # Just display the name
-                    st.write(f"**Route:** {route_name}")
-                    
-                    # Create a specific button for this route
-                    if match:
-                        r_num = match.group()
-                        # Unique key for every button (important!)
-                        def go_to_route(route_n):
-                            st.session_state.view_route_num = route_n
-                            st.session_state.navigate_to_route = True
-                            
-                        if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
-                            go_to_route(r_num)
-                            st.rerun() # Rerun immediately to trigger the top-level switch
-                    
-                    st.write(f"**{label_text}** {row['Pickup']}")
-                    
-                    if show_time:
-                        p_time = row.get('PickupTime')
-                        if pd.isna(p_time): p_time = "TBC"
-                        st.write(f"**⏱️ Time:** {p_time}")
-                        
-                        st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
+                    # --- TRAVEL BADGE ---
+                    direction = str(row['Direction']).title()
+                    label_text = "Pickup:"
+                    show_time, show_return_msg = False, False
+                    badge_color, icon, pin_color = "blue", "🚌", "blue"
 
-                    if show_return_msg:
-                        st.info("ℹ️ **Return:** All coaches depart Silverstone at 01:00 AM.")
-
-                    if pd.notna(row['MapLink']):
-                        st.link_button("/// What 3 Words Link", row['MapLink'])
-                        
-                with c2:
-                    # --- STATIC MAP (STOPS SPINNING) ---
-                    lat, lon = row.get('Lat'), row.get('Lon')
-                    if pd.notna(lat) and pd.notna(lon):
-                        m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
-                        folium.Marker(
-                            [lat, lon], 
-                            popup=row['Pickup'], 
-                            icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
-                        ).add_to(m)
-                        
-                        # Use folium_static instead of st_folium
-                        folium_static(m, height=200, width=350)
+                    if "Both" in direction:
+                        label_text, show_time, show_return_msg = "Pickup & Dropoff:", True, True
+                        badge_color, icon, pin_color = "green", "🔄", "green"
+                    elif "To" in direction:
+                        label_text, show_time, show_return_msg = "Pickup:", True, False
+                        badge_color, icon, pin_color = "orange", "➡️", "green"
                     else:
-                        st.info("🗺️ Map not available")
+                        label_text, show_time, show_return_msg = "Dropoff:", False, True
+                        badge_color, icon, pin_color = "blue", "⬅️", "blue"
 
-        # Footer
-        st.divider()
-        main_contact = bookings.iloc[0]['Name']
-        subject = f"Change Request: {user_code}"
-        body = f"Hello Transport Team,%0D%0A%0D%0AI need to request a change for booking {user_code} (Contact: {main_contact})."
-        
-        st.markdown(
-            f'<div style="text-align: center;"><a href="mailto:sambrough@countrylion.co.uk?subject={subject}&body={body}" '
-            f'style="text-decoration:none; background-color:#229971; color:white; padding:10px 20px; border-radius:5px;">'
-            f'✉️ Request Amendment / Cancellation</a></div>', 
-            unsafe_allow_html=True
-        )
+                    st.markdown(f":{badge_color}[**{icon} Travel Direction: {direction}**]")
+                    st.divider()
 
-    else:
-        st.error("❌ Code not found. Please check your reference.")
-        if st.button("Reset Search"):
-            st.session_state.search_performed = False
-            st.rerun()
+                    # --- DETAILS ---
+                    c1, c2 = st.columns([1.5, 2])
+                    with c1:
+                        route_name = str(row['Route'])
+                        match = re.search(r'\d+', route_name)
+                        
+                        st.write(f"**Route:** {route_name}")
+                        
+                        if match:
+                            r_num = match.group()
+                            def go_to_route(route_n):
+                                st.session_state.view_route_num = route_n
+                                st.session_state.navigate_to_route = True
+                                
+                            if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
+                                go_to_route(r_num)
+                                st.rerun()
+                        
+                        st.write(f"**{label_text}** {row['Pickup']}")
+                        
+                        if show_time:
+                            p_time = row.get('PickupTime')
+                            if pd.isna(p_time): p_time = "TBC"
+                            st.write(f"**⏱️ Time:** {p_time}")
+                            
+                            st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
+
+                        if show_return_msg:
+                            st.info("ℹ️ **Return:** All coaches depart Silverstone at 01:00 AM.")
+
+                        if pd.notna(row['MapLink']):
+                            st.link_button("/// What 3 Words Link", row['MapLink'])
+                            
+                    with c2:
+                        lat, lon = row.get('Lat'), row.get('Lon')
+                        if pd.notna(lat) and pd.notna(lon):
+                            m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
+                            folium.Marker(
+                                [lat, lon], 
+                                popup=row['Pickup'], 
+                                icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
+                            ).add_to(m)
+                            
+                            folium_static(m, height=200, width=350)
+                        else:
+                            st.info("🗺️ Map not available")
+
+            # Footer
+            st.divider()
+            main_contact = bookings.iloc[0]['Name']
+            subject = f"Change Request: {user_code}"
+            body = f"Hello Transport Team,%0D%0A%0D%0AI need to request a change for booking {user_code} (Contact: {main_contact})."
+            
+            st.markdown(
+                f'<div style="text-align: center;"><a href="mailto:sambrough@countrylion.co.uk?subject={subject}&body={body}" '
+                f'style="text-decoration:none; background-color:#229971; color:white; padding:10px 20px; border-radius:5px;">'
+                f'✉️ Request Amendment / Cancellation</a></div>', 
+                unsafe_allow_html=True
+            )
+
+        else:
+            st.error("❌ Code not found. Please check your reference.")
+            if st.button("Reset Search"):
+                st.session_state.search_performed = False
+                st.rerun()
+    
+    st.markdown('</div>', unsafe_allow_html=True) # Close main-content div
