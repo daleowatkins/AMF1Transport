@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
 import folium
-from streamlit_folium import st_folium # Changed to st_folium as requested by log
+from streamlit_folium import st_folium
 import base64
+import requests
+import polyline
 
 # 1. Page Config
 st.set_page_config(page_title="Route Details", page_icon="🗺️", layout="centered")
@@ -60,6 +62,7 @@ st.markdown("""
         padding: 0rem 1rem;
         max-width: 800px;
         margin: 0 auto;
+        text-align: left; /* Ensure left justification */
     }
 
     /* Table Links */
@@ -76,6 +79,29 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+# --- OSRM ROUTING FUNCTION ---
+@st.cache_data
+def get_osrm_route(coordinates):
+    """
+    Fetch route geometry from OSRM public API.
+    coordinates: List of [lat, lon] pairs.
+    """
+    # OSRM expects [lon, lat]
+    locs = [f"{lon},{lat}" for lat, lon in coordinates]
+    loc_string = ";".join(locs)
+    url = f"http://router.project-osrm.org/route/v1/driving/{loc_string}?overview=full&geometries=polyline"
+    
+    try:
+        r = requests.get(url)
+        if r.status_code == 200:
+            res = r.json()
+            # Decode polyline
+            route_coords = polyline.decode(res['routes'][0]['geometry'])
+            return route_coords
+    exceptException:
+        return None
+    return None
 
 # --- HERO BANNER ---
 def get_base64_image(image_path):
@@ -127,7 +153,7 @@ try:
     except FileNotFoundError:
         df = pd.read_csv(f"../{filename}")
     
-    # --- 1. MAP (Full Route) ---
+    # --- 1. MAP (Full Route with OSRM) ---
     st.subheader("🗺️ Route Map")
     
     if 'Lat' in df.columns and 'Lon' in df.columns:
@@ -148,13 +174,26 @@ try:
                 icon=folium.Icon(color="green", icon="bus", prefix="fa")
             ).add_to(m)
         
+        # Draw Route Line (OSRM)
         if len(points) > 1:
-            folium.PolyLine(
-                points, 
-                color="#229971", 
-                weight=5, 
-                opacity=0.8
-            ).add_to(m)
+            route_path = get_osrm_route(points)
+            if route_path:
+                folium.PolyLine(
+                    route_path, 
+                    color="#229971", 
+                    weight=5, 
+                    opacity=0.8
+                ).add_to(m)
+            else:
+                # Fallback to straight lines if OSRM fails
+                folium.PolyLine(
+                    points, 
+                    color="#229971", 
+                    weight=5, 
+                    opacity=0.8,
+                    dash_array='5'
+                ).add_to(m)
+
             m.fit_bounds(points)
 
         # FIX: Use st_folium with specific width/height to avoid warning
