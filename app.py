@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import folium
-from streamlit_folium import st_folium
+from streamlit_folium import folium_static
 import re
 import base64
 import os
@@ -12,20 +12,20 @@ st.set_page_config(page_title="AMF1 Transport", page_icon="🏎️", layout="cen
 # --- CUSTOM CSS ---
 st.markdown("""
     <style>
-    /* Hide Streamlit Default Elements */
+    /* 1. Hide Streamlit Default Elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stAppDeployButton {display:none;}
-    [data-testid="stSidebar"] {display: none;}
+    [data-testid="stSidebar"] {display: none;} /* Hides the sidebar completely */
 
-    /* Banner Style */
+    /* 2. Professional Banner Style (Centered, not edge-to-edge) */
     .banner-container {
         width: 100%;
-        height: 285px;
+        height: 285px; /* MODIFIED: Set to 215px + 70px = 285px */
         overflow: hidden;
         margin-bottom: 20px;
-        border-radius: 10px;
+        border-radius: 10px; /* Nice rounded corners */
     }
     
     .banner-container img {
@@ -34,17 +34,41 @@ st.markdown("""
         object-fit: cover;
         object-position: center;
     }
-
-    h1 {text-align: center !important; color: white !important; margin-top: 1rem;}
-    h2, h3, p, div {color: white !important;}
-
-    .route-link {color: #229971 !important; font-weight: bold; text-decoration: none !important;}
-    .route-link:hover {color: #2DFFBC !important; text-decoration: none !important;}
     
-    .streamlit-expanderHeader {background-color: #1F1F1F; color: white;}
-    div.stButton > button {width: 100%;}
+    /* Center Title & Text Colors (H1 is kept for consistency if ever needed but no longer used) */
+    h1 {
+        text-align: center !important;
+        color: white !important;
+        margin-top: 1rem;
+    }
+    
+    h2, h3, p, div {
+        color: white !important;
+    }
+    
+    /* 3. Custom Link Style */
+    .route-link {
+        color: #229971 !important;
+        font-weight: bold;
+        text-decoration: none !important;
+    }
+    .route-link:hover {
+        color: #2DFFBC !important;
+        text-decoration: none !important;
+    }
+    
+    /* Fix for Expander Borders to look nice on dark theme */
+    .streamlit-expanderHeader {
+        background-color: #1F1F1F;
+        color: white;
+    }
+    
+    /* Button Centering */
+    div.stButton > button {
+        width: 100%;
+    }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
 # --- MEMORY INITIALIZATION ---
 if 'search_performed' not in st.session_state:
@@ -56,7 +80,7 @@ if 'navigate_to_route' not in st.session_state:
 if 'view_route_num' not in st.session_state:
     st.session_state.view_route_num = None
 
-# --- NAVIGATION LOGIC ---
+# --- NAVIGATION LOGIC (Top Level) ---
 if st.session_state.navigate_to_route:
     st.session_state.navigate_to_route = False 
     st.switch_page("pages/Routes.py")
@@ -82,8 +106,9 @@ def load_data():
 
 df = load_data()
 
-# --- HERO BANNER ---
+# --- 3. HERO BANNER (Robust Implementation) ---
 def get_base64_image(image_path):
+    # Check if file exists before trying to open
     if not os.path.exists(image_path):
         return ""
     try:
@@ -92,23 +117,30 @@ def get_base64_image(image_path):
     except Exception:
         return ""
 
+# Try to load local banner, fallback to a URL if missing
 banner_b64 = get_base64_image("banner.jpg")
+
 if banner_b64:
     banner_html = f'<img src="data:image/jpg;base64,{banner_b64}">'
 else:
+    # Fallback URL (Using a generic Aston Martin F1 image)
     banner_html = '<img src="https://media.formula1.com/image/upload/f_auto,c_limit,w_1440,q_auto/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/team%20logos/aston%20martin%202024.png">'
 
 st.markdown(f"""
     <div class="banner-container">
         {banner_html}
     </div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+
+# --- REMOVED LOGO AND TITLE HERE ---
+# The logo display block was removed.
+# st.title("") was removed.
 
 if df is None:
     st.error("⚠️ System Error: 'bookings.csv' not found.")
     st.stop()
 
-# 3. Login Form
+# 4. Login Form
 st.write("Please enter your booking reference.")
 
 def update_search():
@@ -119,7 +151,7 @@ with st.form(key='login_form'):
     st.text_input("Booking Code", key="widget_input")
     st.form_submit_button(label='Find My Booking', type="primary", on_click=update_search)
 
-# 4. Results Logic
+# 5. Results Logic
 if st.session_state.search_performed:
     user_code = st.session_state.booking_code
     bookings = df[df['Code'] == user_code]
@@ -128,11 +160,11 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
-            # Unique keys for expander and map
+            # Use the route name or a unique identifier for the expander key
             unique_expander_key = f"expander_{user_code}_{index}"
-            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True, key=unique_expander_key):
+            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
                 
-                # Travel Badge
+                # --- TRAVEL BADGE ---
                 direction = str(row['Direction']).title()
                 label_text = "Pickup:"
                 show_time, show_return_msg = False, False
@@ -151,7 +183,7 @@ if st.session_state.search_performed:
                 st.markdown(f":{badge_color}[**{icon} Travel Direction: {direction}**]")
                 st.divider()
 
-                # Details
+                # --- DETAILS ---
                 c1, c2 = st.columns([1.5, 2])
                 with c1:
                     route_name = str(row['Route'])
@@ -161,9 +193,12 @@ if st.session_state.search_performed:
                     
                     if match:
                         r_num = match.group()
+                        # Define the callback function
                         def go_to_route(route_n=r_num):
                             st.session_state.view_route_num = route_n
                             st.session_state.navigate_to_route = True
+                            
+                        # The Button that was missing!
                         st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}", on_click=go_to_route)
                         
                     st.write(f"**{label_text}** {row['Pickup']}")
@@ -172,25 +207,28 @@ if st.session_state.search_performed:
                         p_time = row.get('PickupTime')
                         if pd.isna(p_time): p_time = "TBC"
                         st.write(f"**⏱️ Time:** {p_time}")
+                        
                         st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
 
                     if show_return_msg:
                         st.info("ℹ️ **Return:** All coaches depart Silverstone at 01:00 AM.")
 
-                    if pd.notna(row.get('MapLink')):
+                    if pd.notna(row['MapLink']):
                         st.link_button("/// What 3 Words Link", row['MapLink'])
                         
                 with c2:
                     lat, lon = row.get('Lat'), row.get('Lon')
                     if pd.notna(lat) and pd.notna(lon):
+                        # Define map location and appearance
                         m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
                         folium.Marker(
                             [lat, lon], 
                             popup=row['Pickup'], 
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
-                        # Unique key for each map
-                        st_folium(m, height=200, width=350, key=f"map_{user_code}_{index}")
+                        
+                        # Display the map
+                        folium_static(m, height=200, width=350)
                     else:
                         st.info("🗺️ Map not available")
 
