@@ -46,7 +46,7 @@ st.markdown("""
         object-position: center;
     }
     
-    /* Typography */
+    /* Typography - CENTER ALIGNMENT */
     h1, h2, h3, p, div {
         text-align: center !important;
         color: white !important;
@@ -59,7 +59,7 @@ st.markdown("""
         padding: 0rem 1rem;
         max-width: 800px;
         margin: 0 auto;
-        text-align: center; 
+        text-align: center; /* Force center alignment for all content */
     }
 
     /* Table Links */
@@ -73,6 +73,27 @@ st.markdown("""
         background-color: #229971 !important;
         color: white !important;
         width: 100%;
+    }
+    
+    /* Force Center for Map and Table */
+    iframe { 
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    /* Target the dataframe container */
+    div[data-testid="stDataFrame"] {
+        width: fit-content !important;
+        margin: 0 auto !important;
+    }
+    
+    /* Ensure the map container is centered */
+    div[data-testid="stFolium"] {
+        display: flex;
+        justify_content: center;
+        align-items: center;
+        margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -93,7 +114,9 @@ def get_osrm_route(coordinates):
         r = requests.get(url)
         if r.status_code == 200:
             res = r.json()
-            return polyline.decode(res['routes'][0]['geometry'])
+            # Decode polyline
+            route_coords = polyline.decode(res['routes'][0]['geometry'])
+            return route_coords
     except Exception:
         return None
     return None
@@ -106,6 +129,7 @@ def get_base64_image(image_path):
     except:
         return ""
 
+# Look for banner in parent folder since we are in pages/
 banner_b64 = get_base64_image("banner.jpg") 
 if not banner_b64:
     banner_b64 = get_base64_image("../banner.jpg")
@@ -138,16 +162,18 @@ if "view_route_num" not in st.session_state:
 route_num = st.session_state.view_route_num
 filename = f"route{route_num}.csv"
 
+# Removed Emoji from Title
 st.title(f"Route {route_num} Details")
 
 try:
+    # Read CSV
     try:
         df = pd.read_csv(filename)
     except FileNotFoundError:
         df = pd.read_csv(f"../{filename}")
     
-    # --- 1. MAP (Centered using Columns) ---
-    st.subheader("Route Map")
+    # --- 1. MAP (Full Route with OSRM) ---
+    st.subheader("Route Map") # Removed Emoji
     
     if 'Lat' in df.columns and 'Lon' in df.columns:
         avg_lat = df['Lat'].mean()
@@ -164,30 +190,45 @@ try:
                 coords,
                 popup=f"{row['Stop Name']}<br>{row['Time']}",
                 tooltip=row['Stop Name'],
+                # Removed specific bus icon to be cleaner, just default pin or simple dot
                 icon=folium.Icon(color="green", icon="info-sign") 
             ).add_to(m)
         
+        # Draw Route Line (OSRM)
         if len(points) > 1:
             route_path = get_osrm_route(points)
             if route_path:
-                folium.PolyLine(route_path, color="#229971", weight=5, opacity=0.8).add_to(m)
+                folium.PolyLine(
+                    route_path, 
+                    color="#229971", 
+                    weight=5, 
+                    opacity=0.8
+                ).add_to(m)
             else:
-                folium.PolyLine(points, color="#229971", weight=5, opacity=0.8, dash_array='5').add_to(m)
+                # Fallback to straight lines if OSRM fails
+                folium.PolyLine(
+                    points, 
+                    color="#229971", 
+                    weight=5, 
+                    opacity=0.8,
+                    dash_array='5'
+                ).add_to(m)
 
             m.fit_bounds(points)
 
-        # CENTER THE MAP: Use 3 columns, map goes in the middle
-        c1, c2, c3 = st.columns([1, 6, 1]) 
+        # FIX: Use st_folium with specific width/height to avoid warning
+        # returned_objects=[] prevents the loop/crash
+        # WRAPPED in columns to ensure centering
+        c1, c2, c3 = st.columns([1, 10, 1])
         with c2:
-            # Corrected st_folium call (No deprecated args)
-            st_folium(m, height=400, width=700, returned_objects=[])
+             st_folium(m, height=400, width=700, returned_objects=[])
         
     else:
         st.warning("Map coordinates missing.")
 
-    # --- 2. TIMETABLE (Centered) ---
+    # --- 2. TIMETABLE ---
     st.divider()
-    st.subheader(f"Timetable")
+    st.subheader(f"Timetable") # Removed Emoji
     
     display_df = df[['Stop Name', 'Time']].copy()
     if 'W3W' in df.columns:
@@ -195,10 +236,11 @@ try:
             lambda x: f"<a href='https://w3w.co/{str(x).replace('///', '')}' target='_blank'>{x}</a>"
         )
     
-    # CENTER THE TABLE: Using same column trick
-    c1, c2, c3 = st.columns([1, 10, 1])
-    with c2:
-        st.write(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+    # Use HTML table to support centering and links
+    # Added 'margin: auto' style directly to the table HTML to force centering
+    table_html = display_df.to_html(escape=False, index=False, classes="table-centered")
+    table_html = table_html.replace('<table', '<table style="margin-left: auto; margin-right: auto;"')
+    st.write(table_html, unsafe_allow_html=True)
 
 except FileNotFoundError:
     st.info(f"Route data for Route {route_num} is coming soon.")
