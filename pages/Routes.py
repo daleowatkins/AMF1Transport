@@ -75,25 +75,14 @@ st.markdown("""
         width: 100%;
     }
     
-    /* Force Center for Map and Table */
-    iframe { 
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
+    /* Center the Map and Table */
+    iframe { margin: 0 auto !important; display: block !important; }
+    [data-testid="stDataFrame"] { margin: 0 auto !important; width: fit-content !important; }
     
-    /* Target the dataframe container */
-    div[data-testid="stDataFrame"] {
-        width: fit-content !important;
-        margin: 0 auto !important;
-    }
-    
-    /* Ensure the map container is centered */
+    /* Force Folium Map to Center */
     div[data-testid="stFolium"] {
         display: flex;
         justify_content: center;
-        align-items: center;
-        margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -117,7 +106,7 @@ def get_osrm_route(coordinates):
             # Decode polyline
             route_coords = polyline.decode(res['routes'][0]['geometry'])
             return route_coords
-    except Exception: # Fixed Syntax Error here (added space)
+    except Exception:
         return None
     return None
 
