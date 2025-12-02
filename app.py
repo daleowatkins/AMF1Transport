@@ -1,72 +1,28 @@
 import streamlit as st
 import pandas as pd
 import folium
-from streamlit_folium import folium_static
-import re
-import base64
-import os
+from streamlit_folium import st_folium
 
 # 1. Page Config
 st.set_page_config(page_title="AMF1 Transport", page_icon="🏎️", layout="centered")
 
-# --- CUSTOM CSS ---
+# --- CUSTOM CSS (For that "Premium" Aston Look) ---
 st.markdown("""
     <style>
-    /* 1. Hide Streamlit Default Elements */
+    /* Hide Streamlit elements */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stAppDeployButton {display:none;}
-    [data-testid="stSidebar"] {display: none;} /* Hides the sidebar completely */
-
-    /* 2. Professional Full-Width Banner Hack */
-    /* Instead of removing padding from everything, we use negative margins on the banner container */
-    .banner-container {
-        width: 100vw;
-        position: relative;
-        left: 50%;
-        right: 50%;
-        margin-left: -50vw;
-        margin-right: -50vw;
-        margin-top: -6rem; /* Pulls it up to cover the top padding area */
-        height: 250px; 
-        overflow: hidden;
-        margin-bottom: 20px;
+    
+    /* Rounded corners for the banner */
+    img {
+        border-radius: 5px;
     }
     
-    .banner-container img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center;
-    }
-    
-    /* Center Title & Text Colors */
-    h1 {
-        text-align: center !important;
+    /* Force specific text colors if needed */
+    h1, h2, h3 {
         color: white !important;
-        margin-top: 1rem;
-    }
-    
-    h2, h3, p, div {
-        color: white !important;
-    }
-    
-    /* 3. Custom Link Style */
-    .route-link {
-        color: #229971 !important;
-        font-weight: bold;
-        text-decoration: none !important;
-    }
-    .route-link:hover {
-        color: #2DFFBC !important;
-        text-decoration: none !important;
-    }
-    
-    /* Fix for Expander Borders to look nice on dark theme */
-    .streamlit-expanderHeader {
-        background-color: #1F1F1F;
-        color: white;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -76,15 +32,6 @@ if 'search_performed' not in st.session_state:
     st.session_state.search_performed = False
 if 'booking_code' not in st.session_state:
     st.session_state.booking_code = ""
-if 'navigate_to_route' not in st.session_state:
-    st.session_state.navigate_to_route = False
-if 'view_route_num' not in st.session_state:
-    st.session_state.view_route_num = None
-
-# --- NAVIGATION LOGIC ---
-if st.session_state.navigate_to_route:
-    st.session_state.navigate_to_route = False 
-    st.switch_page("pages/Routes.py")
 
 # 2. Load Data
 @st.cache_data
@@ -107,55 +54,37 @@ def load_data():
 
 df = load_data()
 
-# --- 3. HERO BANNER (Robust Implementation) ---
-# We use base64 to ensure the image loads reliably in the HTML block
-def get_base64_image(image_path):
-    try:
-        with open(image_path, "rb") as img_file:
-            return base64.b64encode(img_file.read()).decode()
-    except:
-        return ""
+# --- 3. BRANDING HEADER ---
+# This displays your banner image at the very top
+try:
+    st.image("banner.jpg", use_container_width=True) 
+except:
+    pass
 
-# Try to load local banner, fallback to a URL if missing
-banner_b64 = get_base64_image("banner.jpg")
+# Sidebar Logo
+try:
+    st.logo("logo.png")
+except:
+    pass
 
-if banner_b64:
-    banner_html = f'<img src="data:image/jpg;base64,{banner_b64}">'
-else:
-    # Fallback URL (Aston Martin F1 Generic Image) if local file fails
-    banner_html = '<img src="https://media.formula1.com/image/upload/f_auto,c_limit,w_1440,q_auto/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/team%20logos/aston%20martin%202024.png">'
-
-st.markdown(f"""
-    <div class="banner-container">
-        {banner_html}
-    </div>
-    """, unsafe_allow_html=True)
-
-# Logo Centered
-c1, c2, c3 = st.columns([1,1,1])
-with c2:
-    try:
-        # Updated to avoid the warning: removed use_container_width
-        st.image("logo.png") 
-    except:
-        pass
-
-st.title("Aston Martin F1 End of Season Party Transport")
+st.title("AMF1 Team Transport")
 
 if df is None:
     st.error("⚠️ System Error: 'bookings.csv' not found.")
     st.stop()
 
 # 4. Login Form
-st.write("Please enter your booking reference.")
+with st.container(border=True):
+    st.write("Please enter your booking reference.")
+    
+    def update_search():
+        st.session_state.search_performed = True
+        st.session_state.booking_code = st.session_state.widget_input.upper().strip()
 
-def update_search():
-    st.session_state.search_performed = True
-    st.session_state.booking_code = st.session_state.widget_input.upper().strip()
-
-with st.form(key='login_form'):
-    st.text_input("Booking Code", key="widget_input")
-    st.form_submit_button(label='Find My Booking', type="primary", on_click=update_search)
+    with st.form(key='login_form'):
+        st.text_input("Booking Code", key="widget_input")
+        # The primary button will now use the "Aston Green" from config.toml
+        st.form_submit_button(label='Find My Booking', type="primary", on_click=update_search)
 
 # 5. Results Logic
 if st.session_state.search_performed:
@@ -166,7 +95,7 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
-            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
+            with st.expander(f"🎫 TICKET: {row['Name']}", expanded=True):
                 
                 # --- TRAVEL BADGE ---
                 direction = str(row['Direction']).title()
@@ -190,21 +119,7 @@ if st.session_state.search_performed:
                 # --- DETAILS ---
                 c1, c2 = st.columns([1.5, 2])
                 with c1:
-                    route_name = str(row['Route'])
-                    match = re.search(r'\d+', route_name)
-                    
-                    st.write(f"**Route:** {route_name}")
-                    
-                    if match:
-                        r_num = match.group()
-                        def go_to_route(route_n):
-                            st.session_state.view_route_num = route_n
-                            st.session_state.navigate_to_route = True
-                            
-                        if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
-                            go_to_route(r_num)
-                            st.rerun()
-                    
+                    st.write(f"**Route:** {row['Route']}")
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
                     if show_time:
@@ -212,6 +127,7 @@ if st.session_state.search_performed:
                         if pd.isna(p_time): p_time = "TBC"
                         st.write(f"**⏱️ Time:** {p_time}")
                         
+                        # --- NEW DEPARTURE WARNING ---
                         st.info("⚠️ Please ensure you are at your pickup point 5 mins before your time. The coach will unfortunately only be able to wait 2 minutes for any missing passengers.")
 
                     if show_return_msg:
@@ -221,16 +137,18 @@ if st.session_state.search_performed:
                         st.link_button("/// What 3 Words Link", row['MapLink'])
                         
                 with c2:
+                    # --- MAP ---
                     lat, lon = row.get('Lat'), row.get('Lon')
                     if pd.notna(lat) and pd.notna(lon):
-                        m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
+                        m = folium.Map(location=[lat, lon], zoom_start=16)
                         folium.Marker(
                             [lat, lon], 
                             popup=row['Pickup'], 
+                            # We use 'darkgreen' or 'blue' for the pin color to match the theme
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
                         
-                        folium_static(m, height=200, width=350)
+                        st_folium(m, height=200, use_container_width=True, returned_objects=[], key=f"map_{index}")
                     else:
                         st.info("🗺️ Map not available")
 
@@ -241,7 +159,7 @@ if st.session_state.search_performed:
         body = f"Hello Transport Team,%0D%0A%0D%0AI need to request a change for booking {user_code} (Contact: {main_contact})."
         
         st.markdown(
-            f'<div style="text-align: center;"><a href="mailto:sambrough@countrylion.co.uk?subject={subject}&body={body}" '
+            f'<div style="text-align: center;"><a href="mailto:transport@yourteam.com?subject={subject}&body={body}" '
             f'style="text-decoration:none; background-color:#229971; color:white; padding:10px 20px; border-radius:5px;">'
             f'✉️ Request Amendment / Cancellation</a></div>', 
             unsafe_allow_html=True
