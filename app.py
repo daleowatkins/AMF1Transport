@@ -35,7 +35,7 @@ st.markdown("""
         object-position: center;
     }
     
-    /* Center Title & Text Colors */
+    /* Center Title & Text Colors (H1 is kept for consistency if ever needed but no longer used) */
     h1 {
         text-align: center !important;
         color: white !important;
@@ -108,10 +108,13 @@ df = load_data()
 
 # --- 3. HERO BANNER (Robust Implementation) ---
 def get_base64_image(image_path):
+    # Check if file exists before trying to open
+    if not os.path.exists(image_path):
+        return ""
     try:
         with open(image_path, "rb") as img_file:
             return base64.b64encode(img_file.read()).decode()
-    except:
+    except Exception:
         return ""
 
 # Try to load local banner, fallback to a URL if missing
@@ -120,7 +123,7 @@ banner_b64 = get_base64_image("banner.jpg")
 if banner_b64:
     banner_html = f'<img src="data:image/jpg;base64,{banner_b64}">'
 else:
-    # Fallback URL
+    # Fallback URL (Using a generic Aston Martin F1 image)
     banner_html = '<img src="https://media.formula1.com/image/upload/f_auto,c_limit,w_1440,q_auto/f_auto/q_auto/content/dam/fom-website/2018-redesign-assets/team%20logos/aston%20martin%202024.png">'
 
 st.markdown(f"""
@@ -129,13 +132,9 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-# Logo Centered
-c1, c2, c3 = st.columns([1,1,1])
-with c2:
-    except:
-        pass
-
-st.title("")
+# --- REMOVED LOGO AND TITLE HERE ---
+# The logo display block was removed.
+# st.title("") was removed.
 
 if df is None:
     st.error("⚠️ System Error: 'bookings.csv' not found.")
@@ -161,6 +160,8 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
+            # Use the route name or a unique identifier for the expander key
+            unique_expander_key = f"expander_{user_code}_{index}"
             with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
                 
                 # --- TRAVEL BADGE ---
@@ -199,7 +200,7 @@ if st.session_state.search_performed:
                             
                         # The Button that was missing!
                         st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}", on_click=go_to_route)
-                    
+                        
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
                     if show_time:
@@ -218,6 +219,7 @@ if st.session_state.search_performed:
                 with c2:
                     lat, lon = row.get('Lat'), row.get('Lon')
                     if pd.notna(lat) and pd.notna(lon):
+                        # Define map location and appearance
                         m = folium.Map(location=[lat, lon], zoom_start=16, control_scale=False, zoom_control=False)
                         folium.Marker(
                             [lat, lon], 
@@ -225,7 +227,7 @@ if st.session_state.search_performed:
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
                         
-                        # FIXED: Explicit width/height, no deprecated args
+                        # Display the map
                         folium_static(m, height=200, width=350)
                     else:
                         st.info("🗺️ Map not available")
