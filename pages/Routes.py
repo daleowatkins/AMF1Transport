@@ -76,8 +76,14 @@ st.markdown("""
     }
     
     /* Center the Map and Table */
-    iframe { margin: 0 auto; display: block; }
-    [data-testid="stDataFrame"] { margin: 0 auto; }
+    iframe { margin: 0 auto !important; display: block !important; }
+    [data-testid="stDataFrame"] { margin: 0 auto !important; width: fit-content !important; }
+    
+    /* Force Folium Map to Center */
+    div[data-testid="stFolium"] {
+        display: flex;
+        justify_content: center;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -201,7 +207,10 @@ try:
 
         # FIX: Use st_folium with specific width/height to avoid warning
         # returned_objects=[] prevents the loop/crash
-        st_folium(m, height=400, width=700, returned_objects=[])
+        # WRAPPED in columns to ensure centering
+        c1, c2, c3 = st.columns([1, 6, 1])
+        with c2:
+             st_folium(m, height=400, width=700, returned_objects=[])
         
     else:
         st.warning("Map coordinates missing.")
