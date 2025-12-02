@@ -33,9 +33,10 @@ st.markdown("""
         margin-left: -50vw;
         margin-right: -50vw;
         margin-top: -6rem;
-        height: 250px; 
+        height: 285px; /* Replicated height from main app (215px + 70px) */
         overflow: hidden;
         margin-bottom: 20px;
+        border-radius: 10px; /* Added consistent border radius */
     }
     
     .banner-container img {
