@@ -17,9 +17,9 @@ st.markdown("""
     footer {visibility: hidden;}
     header {visibility: hidden;}
     .stAppDeployButton {display:none;}
-    [data-testid="stSidebar"] {display: none;} /* Hides the sidebar completely */
+    [data-testid="stSidebar"] {display: none;}
 
-    /* Professional Banner Style */
+    /* Banner Style */
     .banner-container {
         width: 100%;
         height: 285px;
@@ -35,34 +35,14 @@ st.markdown("""
         object-position: center;
     }
 
-    h1 {
-        text-align: center !important;
-        color: white !important;
-        margin-top: 1rem;
-    }
+    h1 {text-align: center !important; color: white !important; margin-top: 1rem;}
+    h2, h3, p, div {color: white !important;}
+
+    .route-link {color: #229971 !important; font-weight: bold; text-decoration: none !important;}
+    .route-link:hover {color: #2DFFBC !important; text-decoration: none !important;}
     
-    h2, h3, p, div {
-        color: white !important;
-    }
-    
-    .route-link {
-        color: #229971 !important;
-        font-weight: bold;
-        text-decoration: none !important;
-    }
-    .route-link:hover {
-        color: #2DFFBC !important;
-        text-decoration: none !important;
-    }
-    
-    .streamlit-expanderHeader {
-        background-color: #1F1F1F;
-        color: white;
-    }
-    
-    div.stButton > button {
-        width: 100%;
-    }
+    .streamlit-expanderHeader {background-color: #1F1F1F; color: white;}
+    div.stButton > button {width: 100%;}
     </style>
 """, unsafe_allow_html=True)
 
@@ -148,8 +128,9 @@ if st.session_state.search_performed:
         st.success(f"✅ Found {len(bookings)} passengers")
         
         for index, row in bookings.iterrows():
+            # Unique keys for expander and map
             unique_expander_key = f"expander_{user_code}_{index}"
-            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True):
+            with st.expander(f"🎫 Passenger: {row['Name']}", expanded=True, key=unique_expander_key):
                 
                 # Travel Badge
                 direction = str(row['Direction']).title()
@@ -208,7 +189,8 @@ if st.session_state.search_performed:
                             popup=row['Pickup'], 
                             icon=folium.Icon(color=pin_color, icon="bus", prefix="fa")
                         ).add_to(m)
-                        st_folium(m, height=200, width=350)
+                        # Unique key for each map
+                        st_folium(m, height=200, width=350, key=f"map_{user_code}_{index}")
                     else:
                         st.info("🗺️ Map not available")
 
