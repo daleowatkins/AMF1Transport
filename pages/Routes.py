@@ -18,20 +18,13 @@ st.markdown("""
     .stAppDeployButton {display:none;}
     [data-testid="stSidebar"] {display: none;}
 
-    .block-container {
-        padding-top: 0rem;
-        padding-left: 0rem;
-        padding-right: 0rem;
-        max-width: 100%;
-    }
-    
-    /* 2. Professional Banner Style (Centered, not edge-to-edge) */
+    /* Banner same as app.py (centered, rounded) */
     .banner-container {
         width: 100%;
-        height: 285px; /* MODIFIED: Set to 215px + 70px = 285px */
+        height: 285px;
         overflow: hidden;
         margin-bottom: 20px;
-        border-radius: 10px; /* Nice rounded corners */
+        border-radius: 10px;
     }
     
     .banner-container img {
@@ -41,56 +34,19 @@ st.markdown("""
         object-position: center;
     }
 
-    h1, h2, h3 {
-        text-align: center !important;
-        color: white !important;
-        margin-top: 1rem;
-    }
-    
-    p, div, span {
-        color: white !important;
-    }
+    h1, h2, h3 {text-align: center !important; color: white !important; margin-top: 1rem;}
+    p, div, span {color: white !important;}
 
-    .main-content {
-        padding: 0rem 1rem;
-        max-width: 800px;
-        margin: 0 auto;
-        text-align: center;
-    }
+    .main-content {padding: 0rem 1rem; max-width: 800px; margin: 0 auto; text-align: center;}
 
-    a { color: #229971 !important; text-decoration: none; font-weight: bold; }
-    a:hover { text-decoration: underline; }
+    a {color: #229971 !important; text-decoration: none; font-weight: bold;}
+    a:hover {text-decoration: underline;}
 
-    div.stButton > button {
-        display: block;
-        margin: 0 auto;
-        background-color: #229971 !important;
-        color: white !important;
-        width: 100%;
-    }
+    div.stButton > button {display: block; margin: 0 auto; background-color: #229971 !important; color: white !important; width: 100%;}
 
-    table {
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
+    table {margin-left: auto !important; margin-right: auto !important;}
     </style>
-    """, unsafe_allow_html=True)
-
-# --- OSRM ROUTING FUNCTION ---
-@st.cache_data
-def get_osrm_route(coordinates):
-    locs = [f"{lon},{lat}" for lat, lon in coordinates]
-    loc_string = ";".join(locs)
-    url = f"http://router.project-osrm.org/route/v1/driving/{loc_string}?overview=full&geometries=polyline"
-    
-    try:
-        r = requests.get(url)
-        if r.status_code == 200:
-            res = r.json()
-            return polyline.decode(res['routes'][0]['geometry'])
-    except Exception:
-        return None
-    return None
+""", unsafe_allow_html=True)
 
 # --- HERO BANNER ---
 def get_base64_image(image_path):
@@ -100,7 +56,7 @@ def get_base64_image(image_path):
     except:
         return ""
 
-banner_b64 = get_base64_image("banner.jpg") 
+banner_b64 = get_base64_image("banner.jpg")
 if not banner_b64:
     banner_b64 = get_base64_image("../banner.jpg")
 
@@ -114,20 +70,7 @@ st.markdown(f"""<div class="banner-container">{banner_html}</div>""", unsafe_all
 # --- MAIN CONTENT ---
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
-try:
-    c1, c2, c3 = st.columns([1, 1, 1])
-    with c2:
-        try:
-            st.image("logo.png", width=200)
-        except:
-            try:
-                st.image("../logo.png", width=200)
-            except:
-                pass
-except:
-    pass
-
-# --- LOGIC: GET ROUTE ---
+# --- ROUTE LOGIC ---
 if "view_route_num" not in st.session_state:
     st.warning("⚠️ No route selected.")
     if st.button("⬅️ Back"):
@@ -139,6 +82,20 @@ filename = f"route{route_num}.csv"
 
 st.title(f"Route {route_num} Details")
 
+@st.cache_data
+def get_osrm_route(coordinates):
+    locs = [f"{lon},{lat}" for lat, lon in coordinates]
+    loc_string = ";".join(locs)
+    url = f"http://router.project-osrm.org/route/v1/driving/{loc_string}?overview=full&geometries=polyline"
+    try:
+        r = requests.get(url)
+        if r.status_code == 200:
+            res = r.json()
+            return polyline.decode(res['routes'][0]['geometry'])
+    except:
+        return None
+    return None
+
 try:
     try:
         df = pd.read_csv(filename)
@@ -147,7 +104,6 @@ try:
     
     st.subheader("Route Map")
     
-    # --- 1. MAP WITH PROPER CENTERING ---
     if 'Lat' in df.columns and 'Lon' in df.columns:
         avg_lat = df['Lat'].mean()
         avg_lon = df['Lon'].mean()
@@ -155,10 +111,9 @@ try:
         m = folium.Map(location=[avg_lat, avg_lon], zoom_start=10)
         
         points = []
-        for index, row in df.iterrows():
+        for _, row in df.iterrows():
             coords = [row['Lat'], row['Lon']]
             points.append(coords)
-            
             folium.Marker(
                 coords,
                 popup=f"{row['Stop Name']}<br>{row['Time']}",
@@ -175,9 +130,7 @@ try:
 
             m.fit_bounds(points)
 
-        # Render to HTML and centre properly
         map_html = m._repr_html_()
-
         components_html(
             f"""
             <div style="display:flex; justify-content:center; width:100%;">
@@ -192,23 +145,18 @@ try:
     else:
         st.warning("Map coordinates missing.")
 
-    # --- 2. TIMETABLE ---
+    # --- TIMETABLE ---
     st.divider()
     st.subheader(f"Timetable")
     
     display_df = df[['Stop Name', 'Time']].copy()
-    
     if 'W3W' in df.columns:
         display_df['Location'] = df['W3W'].apply(
             lambda x: f"<a href='https://w3w.co/{str(x).replace('///', '')}' target='_blank'>{x}</a>"
         )
     
     table_html = display_df.to_html(escape=False, index=False)
-    st.markdown(f"""
-        <div style="display: flex; justify-content: center; width: 100%;">
-            {table_html}
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown(f"""<div style="display: flex; justify-content: center; width: 100%;">{table_html}</div>""", unsafe_allow_html=True)
 
 except FileNotFoundError:
     st.info(f"Route data for Route {route_num} is coming soon.")
