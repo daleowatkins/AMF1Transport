@@ -46,20 +46,22 @@ st.markdown("""
         object-position: center;
     }
     
-    /* Typography - CENTER ALIGNMENT */
-    h1, h2, h3, p, div {
+    /* Typography */
+    h1, h2, h3 {
         text-align: center !important;
         color: white !important;
+        margin-top: 1rem;
     }
     
-    h1 { margin-top: 1rem; }
+    p, div, span {
+        color: white !important;
+    }
     
     /* Main Content Wrapper */
     .main-content {
         padding: 0rem 1rem;
         max-width: 800px;
         margin: 0 auto;
-        text-align: center; /* Force center alignment for all content */
     }
 
     /* Table Links */
@@ -74,27 +76,6 @@ st.markdown("""
         color: white !important;
         width: 100%;
     }
-    
-    /* Force Center for Map and Table */
-    iframe { 
-        display: block !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
-    
-    /* Target the dataframe container */
-    div[data-testid="stDataFrame"] {
-        width: fit-content !important;
-        margin: 0 auto !important;
-    }
-    
-    /* Ensure the map container is centered */
-    div[data-testid="stFolium"] {
-        display: flex;
-        justify_content: center;
-        align-items: center;
-        margin: 0 auto;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -105,7 +86,6 @@ def get_osrm_route(coordinates):
     Fetch route geometry from OSRM public API.
     coordinates: List of [lat, lon] pairs.
     """
-    # OSRM expects [lon, lat]
     locs = [f"{lon},{lat}" for lat, lon in coordinates]
     loc_string = ";".join(locs)
     url = f"http://router.project-osrm.org/route/v1/driving/{loc_string}?overview=full&geometries=polyline"
@@ -114,9 +94,7 @@ def get_osrm_route(coordinates):
         r = requests.get(url)
         if r.status_code == 200:
             res = r.json()
-            # Decode polyline
-            route_coords = polyline.decode(res['routes'][0]['geometry'])
-            return route_coords
+            return polyline.decode(res['routes'][0]['geometry'])
     except Exception:
         return None
     return None
@@ -129,7 +107,6 @@ def get_base64_image(image_path):
     except:
         return ""
 
-# Look for banner in parent folder since we are in pages/
 banner_b64 = get_base64_image("banner.jpg") 
 if not banner_b64:
     banner_b64 = get_base64_image("../banner.jpg")
@@ -145,12 +122,18 @@ st.markdown(f"""<div class="banner-container">{banner_html}</div>""", unsafe_all
 st.markdown('<div class="main-content">', unsafe_allow_html=True)
 
 try:
-    st.image("logo.png", width=150)
+    # Center the logo using columns
+    c1, c2, c3 = st.columns([1, 1, 1])
+    with c2:
+        try:
+            st.image("logo.png", use_column_width=True)
+        except:
+            try:
+                st.image("../logo.png", use_column_width=True)
+            except:
+                pass
 except:
-    try:
-        st.image("../logo.png", width=150)
-    except:
-        pass
+    pass
 
 # --- LOGIC: GET ROUTE ---
 if "view_route_num" not in st.session_state:
@@ -162,18 +145,16 @@ if "view_route_num" not in st.session_state:
 route_num = st.session_state.view_route_num
 filename = f"route{route_num}.csv"
 
-# Removed Emoji from Title
 st.title(f"Route {route_num} Details")
 
 try:
-    # Read CSV
     try:
         df = pd.read_csv(filename)
     except FileNotFoundError:
         df = pd.read_csv(f"../{filename}")
     
-    # --- 1. MAP (Full Route with OSRM) ---
-    st.subheader("Route Map") # Removed Emoji
+    # --- 1. MAP (Centered with Columns) ---
+    st.subheader("Route Map")
     
     if 'Lat' in df.columns and 'Lon' in df.columns:
         avg_lat = df['Lat'].mean()
@@ -190,45 +171,29 @@ try:
                 coords,
                 popup=f"{row['Stop Name']}<br>{row['Time']}",
                 tooltip=row['Stop Name'],
-                # Removed specific bus icon to be cleaner, just default pin or simple dot
                 icon=folium.Icon(color="green", icon="info-sign") 
             ).add_to(m)
         
-        # Draw Route Line (OSRM)
         if len(points) > 1:
             route_path = get_osrm_route(points)
             if route_path:
-                folium.PolyLine(
-                    route_path, 
-                    color="#229971", 
-                    weight=5, 
-                    opacity=0.8
-                ).add_to(m)
+                folium.PolyLine(route_path, color="#229971", weight=5, opacity=0.8).add_to(m)
             else:
-                # Fallback to straight lines if OSRM fails
-                folium.PolyLine(
-                    points, 
-                    color="#229971", 
-                    weight=5, 
-                    opacity=0.8,
-                    dash_array='5'
-                ).add_to(m)
+                folium.PolyLine(points, color="#229971", weight=5, opacity=0.8, dash_array='5').add_to(m)
 
             m.fit_bounds(points)
 
-        # FIX: Use st_folium with specific width/height to avoid warning
-        # returned_objects=[] prevents the loop/crash
-        # WRAPPED in columns to ensure centering
-        c1, c2, c3 = st.columns([1, 10, 1])
+        # CENTERING TRICK: Use columns to squeeze the map into the center
+        c1, c2, c3 = st.columns([0.5, 5, 0.5])
         with c2:
-             st_folium(m, height=400, width=700, returned_objects=[])
+            st_folium(m, height=400, width=700, returned_objects=[])
         
     else:
         st.warning("Map coordinates missing.")
 
-    # --- 2. TIMETABLE ---
+    # --- 2. TIMETABLE (Centered) ---
     st.divider()
-    st.subheader(f"Timetable") # Removed Emoji
+    st.subheader(f"Timetable")
     
     display_df = df[['Stop Name', 'Time']].copy()
     if 'W3W' in df.columns:
@@ -236,11 +201,13 @@ try:
             lambda x: f"<a href='https://w3w.co/{str(x).replace('///', '')}' target='_blank'>{x}</a>"
         )
     
-    # Use HTML table to support centering and links
-    # Added 'margin: auto' style directly to the table HTML to force centering
-    table_html = display_df.to_html(escape=False, index=False, classes="table-centered")
-    table_html = table_html.replace('<table', '<table style="margin-left: auto; margin-right: auto;"')
-    st.write(table_html, unsafe_allow_html=True)
+    # Center table using HTML wrapper style
+    html_table = display_df.to_html(escape=False, index=False, classes="table-centered")
+    st.markdown(f"""
+        <div style="display: flex; justify-content: center;">
+            {html_table}
+        </div>
+        """, unsafe_allow_html=True)
 
 except FileNotFoundError:
     st.info(f"Route data for Route {route_num} is coming soon.")
