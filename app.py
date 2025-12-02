@@ -22,7 +22,7 @@ st.markdown("""
     /* 2. Professional Banner Style (Centered, not edge-to-edge) */
     .banner-container {
         width: 100%;
-        height: 850px; /* MODIFIED: Increased height to 850px */
+        height: 215px; /* MODIFIED: Set to original 200px + 15px = 215px */
         overflow: hidden;
         margin-bottom: 20px;
         border-radius: 10px; /* Nice rounded corners */
