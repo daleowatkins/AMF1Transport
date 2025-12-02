@@ -49,19 +49,17 @@ if 'search_performed' not in st.session_state:
     st.session_state.search_performed = False
 if 'booking_code' not in st.session_state:
     st.session_state.booking_code = ""
+# Initialize navigation state
+if 'navigate_to_route' not in st.session_state:
+    st.session_state.navigate_to_route = False
+if 'view_route_num' not in st.session_state:
+    st.session_state.view_route_num = None
 
-# --- ROUTE MAPPING CONFIGURATION ---
-# This maps the Route Name (from CSV) to your specific GitHub URL
-# Note: This dictionary is kept for reference, but the app now uses internal page switching
-ROUTE_URLS = {
-    "1": "https://daleowatkins.github.io/AMF1Transport/route1.html",
-    "2": "https://daleowatkins.github.io/AMF1Transport/route2.html",
-    "3": "https://daleowatkins.github.io/AMF1Transport/route3.html",
-    "4": "https://daleowatkins.github.io/AMF1Transport/route4.html",
-    "5": "https://daleowatkins.github.io/AMF1Transport/route5.html",
-    "6": "https://daleowatkins.github.io/AMF1Transport/route6.html",
-    "7": "https://daleowatkins.github.io/AMF1Transport/route7.html"
-}
+# --- NAVIGATION LOGIC (Must be at top level) ---
+if st.session_state.navigate_to_route:
+    # Reset the trigger so we don't get stuck in a loop later
+    st.session_state.navigate_to_route = False 
+    st.switch_page("pages/Routes.py")
 
 # 2. Load Data
 @st.cache_data
@@ -157,9 +155,11 @@ if st.session_state.search_performed:
                     if match:
                         r_num = match.group()
                         # Unique key for every button (important!)
-                        if st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}"):
-                            st.session_state.view_route_num = r_num  # SAVE to memory
-                            st.switch_page("pages/Routes.py")        # SWITCH page
+                        def go_to_route(route_n):
+                            st.session_state.view_route_num = route_n
+                            st.session_state.navigate_to_route = True
+                            
+                        st.button(f"👉 View Route {r_num} Map", key=f"btn_route_{index}", on_click=go_to_route, args=(r_num,))
                     
                     st.write(f"**{label_text}** {row['Pickup']}")
                     
