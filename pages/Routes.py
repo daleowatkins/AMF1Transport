@@ -25,13 +25,13 @@ st.markdown("""
         max-width: 100%;
     }
     
-    /* MODIFIED: Updated to match app.py settings (Contained, not full-width) */
+    /* 2. Professional Banner Style (Centered, not edge-to-edge) */
     .banner-container {
         width: 100%;
-        height: 285px; 
+        height: 285px; /* MODIFIED: Set to 215px + 70px = 285px */
         overflow: hidden;
         margin-bottom: 20px;
-        border-radius: 10px; 
+        border-radius: 10px; /* Nice rounded corners */
     }
     
     .banner-container img {
