@@ -99,7 +99,7 @@ def get_osrm_route(coordinates):
             # Decode polyline
             route_coords = polyline.decode(res['routes'][0]['geometry'])
             return route_coords
-    exceptException:
+    except Exception:
         return None
     return None
 
