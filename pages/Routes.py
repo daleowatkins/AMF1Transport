@@ -75,14 +75,25 @@ st.markdown("""
         width: 100%;
     }
     
-    /* Center the Map and Table */
-    iframe { margin: 0 auto !important; display: block !important; }
-    [data-testid="stDataFrame"] { margin: 0 auto !important; width: fit-content !important; }
+    /* Force Center for Map and Table */
+    iframe { 
+        display: block !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
     
-    /* Force Folium Map to Center */
+    /* Target the dataframe container */
+    div[data-testid="stDataFrame"] {
+        width: fit-content !important;
+        margin: 0 auto !important;
+    }
+    
+    /* Ensure the map container is centered */
     div[data-testid="stFolium"] {
         display: flex;
         justify_content: center;
+        align-items: center;
+        margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -205,12 +216,11 @@ try:
 
             m.fit_bounds(points)
 
-        # FIX: Use st_folium with specific width/height to avoid warning
-        # returned_objects=[] prevents the loop/crash
-        # WRAPPED in columns to ensure centering
-        c1, c2, c3 = st.columns([1, 6, 1])
-        with c2:
-             st_folium(m, height=400, width=700, returned_objects=[])
+        # FIX: Replaced folium_static with st_folium
+        # Using columns to enforce centering if CSS fails
+        col1, col2, col3 = st.columns([1, 10, 1])
+        with col2:
+            st_folium(m, height=400, width=700, returned_objects=[])
         
     else:
         st.warning("Map coordinates missing.")
@@ -226,7 +236,10 @@ try:
         )
     
     # Use HTML table to support centering and links
-    st.write(display_df.to_html(escape=False, index=False, classes="table-centered"), unsafe_allow_html=True)
+    # Added 'margin: auto' style directly to the table HTML to force centering
+    table_html = display_df.to_html(escape=False, index=False, classes="table-centered")
+    table_html = table_html.replace('<table', '<table style="margin-left: auto; margin-right: auto;"')
+    st.write(table_html, unsafe_allow_html=True)
 
 except FileNotFoundError:
     st.info(f"Route data for Route {route_num} is coming soon.")
