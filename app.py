@@ -239,7 +239,7 @@ if st.session_state.search_performed:
         body = f"Hello Transport Team,%0D%0A%0D%0AI need to request a change for booking {user_code} (Contact: {main_contact})."
         
         st.markdown(
-            f'<div style="text-align: center;"><a href="mailto:sambrough@countrylion.co.uk?subject={subject}&body={body}" '
+            f'<div style="text-align: center;"><a href="mailto:amf1@countrylion.co.uk?subject={subject}&body={body}" '
             f'style="text-decoration:none; background-color:#229971; color:white; padding:10px 20px; border-radius:5px;">'
             f'✉️ Request Amendment / Cancellation</a></div>', 
             unsafe_allow_html=True
