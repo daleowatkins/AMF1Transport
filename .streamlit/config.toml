@@ -1,0 +1,13 @@
+[theme]
+base="dark"
+primaryColor="#229971"
+backgroundColor="#002420"
+secondaryBackgroundColor="#00352F"
+textColor="#FFFFFF"
+font="sans serif"
+
+[client]
+toolbarMode="viewer"
+
+[ui]
+hideTopBar=true
